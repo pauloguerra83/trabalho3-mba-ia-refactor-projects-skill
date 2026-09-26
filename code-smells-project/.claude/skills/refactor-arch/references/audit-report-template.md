@@ -1,18 +1,18 @@
 # Referência — Template do Relatório de Auditoria (Fase 2)
 
-O relatório é impresso na íntegra no terminal ao final da Fase 2 (ele é salvo depois como `audit-*.md`, então precisa ser Markdown válido e autocontido).
+O relatório é impresso na íntegra no terminal ao final da Fase 2. Após a confirmação ("y"), a própria skill o salva em `<raiz do repo>/reports/<nome>.md` (Fase 3, etapa 3.0 do `SKILL.md`), então ele precisa ser Markdown válido e autocontido.
 
 ## Regras
 
 1. **Ordem**: CRITICAL → HIGH → MEDIUM → LOW. Dentro da mesma severidade, pela ordem do catálogo (AP-xx).
 2. **Localização exata**: `File:` traz `caminho/relativo.ext:linha` ou `:inicio-fim`. Várias ocorrências da mesma causa → várias localizações separadas por vírgula (`models.py:28, models.py:47-50`). Caminhos relativos à raiz do projeto.
 3. **Um finding por causa raiz**: não repita o mesmo anti-pattern em N findings; agrupe as linhas. Anti-patterns diferentes no mesmo trecho viram findings diferentes.
-4. **Foco em impacto**: todos os CRITICAL/HIGH confirmados; MEDIUM/LOW só com impacto concreto descrito em `Impact`. Alvo de ~5 a 12 findings; candidatos de baixo impacto excedentes vão em uma linha de "Notes" ("Outros pontos menores, fora do escopo: ..."), sem finding próprio.
-5. **Summary bate com a lista**: as contagens por severidade e o `Total` precisam ser exatamente o número de findings listados.
+4. **Foco em impacto com distribuição mínima**: todos os CRITICAL/HIGH confirmados. **Mínimo obrigatório: ≥ 5 findings, com ≥ 1 CRITICAL ou HIGH, ≥ 2 MEDIUM e ≥ 2 LOW.** Os MEDIUM/LOW da cota são os candidatos confirmados de impacto mais concreto, cada um com finding próprio (não em "Notes"). Acima da cota, MEDIUM/LOW só com impacto concreto descrito em `Impact`. Alvo de ~6 a 16 findings; candidatos de baixo impacto excedentes vão em uma linha de "Notes" ("Outros pontos menores, fora do escopo: ..."), sem finding próprio.
+5. **Summary bate com a lista e com o mínimo**: as contagens por severidade e o `Total` precisam ser exatamente o número de findings listados **e** atender à distribuição mínima da regra 4. Se alguma severidade não tiver candidato confirmado depois de rodar todos os sinais do catálogo, a seção "Notes" deve trazer `Quota <SEVERIDADE> não atingida: <motivo>`; nunca invente finding para fechar a conta.
 6. **Deprecated APIs**: sempre presente — como finding(s) AP-15 ou, se nada for encontrado, a linha `Deprecated APIs: none detected` na seção "Notes".
 7. **Recomendação acionável**: cite a transformação do playbook (`T-xx`) e o destino na arquitetura MVC (ex.: "mover para `controllers/pedido_controller.py`").
 8. Descrições em português; cite o valor/trecho problemático entre crases quando curto (nunca imprima segredos completos de produção — mascare após 4 caracteres, ex.: `pk_l****`).
-9. **Nenhum arquivo é modificado** ao produzir o relatório.
+9. **Nenhum arquivo é modificado** ao produzir o relatório na Fase 2; ele só é gravado em disco depois da confirmação.
 
 ## Template
 

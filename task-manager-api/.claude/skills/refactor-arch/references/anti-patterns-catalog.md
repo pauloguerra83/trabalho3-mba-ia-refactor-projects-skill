@@ -2,7 +2,7 @@
 
 Cada entrada tem: **ID**, **severidade padrão**, o que é, **sinais de detecção** (padrões concretos e acionáveis, por stack), **quando NÃO reportar** e a transformação do playbook que o corrige (`T-xx` em `refactoring-playbook.md`).
 
-> **Foco em impacto arquitetural.** O objetivo não é listar todo problema existente, e sim os que mais pesam em segurança, separação de camadas, consistência de dados e manutenção. Um sinal só vira finding quando a leitura do trecho confirma o problema **e** o impacto descrito na entrada. Na dúvida entre reportar um item de baixo impacto ou omiti-lo, omita.
+> **Foco em impacto arquitetural.** O objetivo não é listar todo problema existente, e sim os que mais pesam em segurança, separação de camadas, consistência de dados e manutenção. Um sinal só vira finding quando a leitura do trecho confirma o problema **e** o impacto descrito na entrada. Na dúvida entre reportar um item de baixo impacto ou omiti-lo, omita — **exceto para completar a distribuição mínima de severidades exigida no `SKILL.md` (≥ 1 CRITICAL/HIGH, ≥ 2 MEDIUM, ≥ 2 LOW)**, usando sempre candidatos confirmados por leitura.
 
 ## Escala de severidade
 
