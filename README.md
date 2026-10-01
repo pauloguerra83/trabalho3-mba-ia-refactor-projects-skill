@@ -2,6 +2,8 @@
 
 Skill do Claude Code que analisa um backend legado, audita anti-patterns por severidade e o refatora para MVC, validando que a aplicação continua funcionando. A skill está em `.claude/skills/refactor-arch/` dentro de cada projeto (as 3 cópias são idênticas) e os relatórios de auditoria estão em [`reports/`](reports/). Enunciado original: [devfullcycle/mba-ia-refactor-projects-skill](https://github.com/devfullcycle/mba-ia-refactor-projects-skill).
 
+**Branches:** o `main` contém só a skill e os projetos originais. É o ponto de partida para executar a skill novamente (veja [Como Executar](#d-como-executar)). Esta branch (`feature/skill-sem-over-engineering`) é a entrega, ou seja, o resultado da execução: código refatorado, relatórios e esta documentação.
+
 ---
 
 ## A) Análise Manual
@@ -198,6 +200,148 @@ POST   /api/checkout  -> 400 | Pagamento recusado
 2026-09-26 15:56:49,648 INFO werkzeug: 127.0.0.1 - - [26/Sep/2026 15:56:49] "POST /tasks HTTP/1.1" 201 -
 ```
 
+### Validação dos endpoints (antes × depois)
+
+Cada aplicação foi executada duas vezes, sempre com banco limpo: uma com o código **original** (commit `34653e8`, o mesmo do `main`) e outra com o código **refatorado**, com `ADMIN_TOKEN` definido. Todas as rotas do inventário original foram chamadas com pelo menos um caso de sucesso e um de erro. As rotas administrativas foram chamadas sem token e com o header `X-Admin-Token`.
+
+A comparação considera o status HTTP e a estrutura da resposta (as chaves), ignorando valores voláteis como ids, datas e token. **Todas as diferenças encontradas são intencionais** e estão ligadas a um finding do relatório. Nenhuma regressão foi encontrada.
+
+| Projeto | Rotas | Requisições | Idênticas | Diferenças intencionais | Boot |
+|---|---|---|---|---|---|
+| code-smells-project | 19/19 | 32 | 25 | 7 | ✅ `python app.py` |
+| ecommerce-api-legacy | 3/3 | 10 | 6 | 4 | ✅ `npm start` |
+| task-manager-api | 22/22 | 35 | 30 | 5 | ✅ `python seed.py && python app.py` |
+
+**code-smells-project**
+```
+✓ Application boots without errors (python app.py — 0 tracebacks, 0 warnings)
+✓ All endpoints respond correctly (19/19 rotas, 32 requisições: 25 idênticas ao baseline, 7 diferenças intencionais)
+```
+Contract Changes:
+- `GET /usuarios` e `GET /usuarios/<id>`: o campo `senha` saiu da resposta (AP-04).
+- `GET /health`: a resposta não traz mais `secret_key`, `debug` nem `db_path` (AP-02, AP-04).
+- `POST /login` com `' OR '1'='1' --` no e-mail: no original autenticava como Admin (200); agora responde 401 (AP-01).
+- `POST /admin/query` e `POST /admin/reset-db`: respondem 403 sem `X-Admin-Token`. Com o token, o comportamento é o mesmo do original (AP-05).
+- `POST /admin/query` com comando de escrita (`DELETE ...`): no original era executado; agora responde 400 e só aceita uma consulta `SELECT` (AP-05).
+
+<details><summary>Tabela completa — code-smells-project (32 requisições)</summary>
+
+| Método | Rota | Cenário | Antes | Depois | |
+|---|---|---|---|---|---|
+| GET | `/` | índice | 200 | 200 | = |
+| GET | `/health` | health check | 200 | 200 | ≠ |
+| GET | `/produtos` | listar | 200 | 200 | = |
+| GET | `/produtos/busca?q=Mouse` | buscar | 200 | 200 | = |
+| GET | `/produtos/1` | existente | 200 | 200 | = |
+| GET | `/produtos/9999` | inexistente | 404 | 404 | = |
+| POST | `/produtos` | criar | 201 | 201 | = |
+| POST | `/produtos` | sem nome | 400 | 400 | = |
+| PUT | `/produtos/11` | atualizar | 200 | 200 | = |
+| PUT | `/produtos/9999` | inexistente | 404 | 404 | = |
+| GET | `/usuarios` | listar | 200 | 200 | ≠ |
+| GET | `/usuarios/1` | existente | 200 | 200 | ≠ |
+| GET | `/usuarios/9999` | inexistente | 404 | 404 | = |
+| POST | `/usuarios` | criar | 201 | 201 | = |
+| POST | `/usuarios` | campos faltando | 400 | 400 | = |
+| POST | `/login` | credenciais válidas | 200 | 200 | = |
+| POST | `/login` | senha errada | 401 | 401 | = |
+| POST | `/login` | SQL injection | 200 | 401 | ≠ |
+| POST | `/pedidos` | criar | 201 | 201 | = |
+| POST | `/pedidos` | sem itens | 400 | 400 | = |
+| GET | `/pedidos` | listar todos | 200 | 200 | = |
+| GET | `/pedidos/usuario/2` | por usuário | 200 | 200 | = |
+| PUT | `/pedidos/1/status` | status válido | 200 | 200 | = |
+| PUT | `/pedidos/1/status` | status inválido | 400 | 400 | = |
+| GET | `/relatorios/vendas` | relatório | 200 | 200 | = |
+| DELETE | `/produtos/11` | deletar | 200 | 200 | = |
+| DELETE | `/produtos/9999` | inexistente | 404 | 404 | = |
+| POST | `/admin/query` | SELECT sem token | 200 | 403 | ≠ |
+| POST | `/admin/query` | SELECT com token | 200 | 200 | = |
+| POST | `/admin/query` | escrita com token | 200 | 400 | ≠ |
+| POST | `/admin/reset-db` | sem token | 200 | 403 | ≠ |
+| POST | `/admin/reset-db` | com token | 200 | 200 | = |
+
+</details>
+
+**ecommerce-api-legacy**
+```
+✓ Application boots without errors (npm start — 0 erros)
+✓ All endpoints respond correctly (3/3 rotas, 10 requisições: 6 idênticas ao baseline, 4 diferenças intencionais)
+```
+Contract Changes:
+- `GET /api/admin/financial-report` e `DELETE /api/users/:id`: respondem 403 sem `X-Admin-Token`. Com o token, status e formato são os mesmos do original (AP-05).
+- `DELETE /api/users/:id`: agora remove matrículas e pagamentos na mesma transação. A mensagem passou de "Usuário deletado, mas as matrículas e pagamentos ficaram sujos no banco." para "Usuário deletado" (AP-14).
+- `POST /api/checkout` com `card` numérico: no original, o `TypeError: cc.startsWith is not a function` derrubava o processo Node e a chamada seguinte falhava com conexão recusada. Agora responde 400 "Bad Request" e o servidor continua no ar (AP-12).
+
+<details><summary>Tabela completa — ecommerce-api-legacy (10 requisições)</summary>
+
+| Método | Rota | Cenário | Antes | Depois | |
+|---|---|---|---|---|---|
+| POST | `/api/checkout` | pagamento aprovado | 200 | 200 | = |
+| POST | `/api/checkout` | pagamento recusado | 400 | 400 | = |
+| POST | `/api/checkout` | curso inexistente | 404 | 404 | = |
+| POST | `/api/checkout` | campos faltando | 400 | 400 | = |
+| GET | `/api/admin/financial-report` | sem token | 200 | 403 | ≠ |
+| GET | `/api/admin/financial-report` | com token | 200 | 200 | = |
+| DELETE | `/api/users/1` | sem token | 200 | 403 | ≠ |
+| DELETE | `/api/users/1` | com token | 200 | 200 | = |
+| POST | `/api/checkout` | card numérico | crash | 400 | ≠ |
+| GET | `/api/admin/financial-report` | chamada seguinte (processo vivo?) | crash | 200 | ≠ |
+
+</details>
+
+**task-manager-api**
+```
+✓ Application boots without errors (python seed.py && python app.py — 0 tracebacks, 0 DeprecationWarning)
+✓ All endpoints respond correctly (22/22 rotas, 35 requisições: 30 idênticas ao baseline, 5 diferenças intencionais)
+```
+Contract Changes:
+- `GET /users/<id>`, `POST /users`, `PUT /users/<id>` e `POST /login`: o campo `password` (hash MD5) saiu do objeto de usuário (AP-04).
+- `POST /login`: o `token` agora é assinado com a `SECRET_KEY` (`itsdangerous`) em vez de `fake-jwt-token-<id>`. O nome do campo não mudou (AP-05).
+- `GET /tasks/search?priority=abc`: no original dava 500 com a página HTML do debugger do Werkzeug (`ValueError`); agora responde 400 `{"error": "Parâmetro de busca inválido"}` (AP-10, AP-12).
+
+<details><summary>Tabela completa — task-manager-api (35 requisições)</summary>
+
+| Método | Rota | Cenário | Antes | Depois | |
+|---|---|---|---|---|---|
+| GET | `/` | índice | 200 | 200 | = |
+| GET | `/health` | health check | 200 | 200 | = |
+| GET | `/tasks` | listar | 200 | 200 | = |
+| GET | `/tasks/1` | existente | 200 | 200 | = |
+| GET | `/tasks/9999` | inexistente | 404 | 404 | = |
+| POST | `/tasks` | criar | 201 | 201 | = |
+| POST | `/tasks` | título curto | 400 | 400 | = |
+| PUT | `/tasks/1` | atualizar | 200 | 200 | = |
+| PUT | `/tasks/1` | prioridade inválida | 400 | 400 | = |
+| GET | `/tasks/search?q=a` | busca texto | 200 | 200 | = |
+| GET | `/tasks/search?status=pending` | busca status | 200 | 200 | = |
+| GET | `/tasks/search?priority=abc` | prioridade não numérica | 500 | 400 | ≠ |
+| GET | `/tasks/stats` | estatísticas | 200 | 200 | = |
+| GET | `/users` | listar | 200 | 200 | = |
+| GET | `/users/1` | existente | 200 | 200 | ≠ |
+| GET | `/users/9999` | inexistente | 404 | 404 | = |
+| POST | `/users` | criar | 201 | 201 | ≠ |
+| POST | `/users` | e-mail duplicado | 409 | 409 | = |
+| PUT | `/users/2` | atualizar | 200 | 200 | ≠ |
+| GET | `/users/1/tasks` | tasks do usuário | 200 | 200 | = |
+| POST | `/login` | credenciais válidas | 200 | 200 | ≠ |
+| POST | `/login` | senha errada | 401 | 401 | = |
+| GET | `/reports/summary` | resumo | 200 | 200 | = |
+| GET | `/reports/user/1` | por usuário | 200 | 200 | = |
+| GET | `/reports/user/9999` | inexistente | 404 | 404 | = |
+| GET | `/categories` | listar | 200 | 200 | = |
+| POST | `/categories` | criar | 201 | 201 | = |
+| POST | `/categories` | sem nome | 400 | 400 | = |
+| PUT | `/categories/1` | atualizar | 200 | 200 | = |
+| PUT | `/categories/9999` | inexistente | 404 | 404 | = |
+| DELETE | `/tasks/2` | deletar | 200 | 200 | = |
+| DELETE | `/tasks/9999` | inexistente | 404 | 404 | = |
+| DELETE | `/categories/5` | deletar | 200 | 200 | = |
+| DELETE | `/users/3` | deletar | 200 | 200 | = |
+| DELETE | `/users/9999` | inexistente | 404 | 404 | = |
+
+</details>
+
 ### Observações sobre a skill em stacks diferentes
 
 - **code-smells-project (monólito Flask):** a skill aplicou a estratégia de monólito — criou `src/` com as camadas essenciais e manteve `python app.py` como comando. Foi o projeto com mais findings críticos de segurança (SQL injection, senhas e rotas admin).
@@ -215,9 +359,11 @@ POST   /api/checkout  -> 400 | Pagamento recusado
 
 ### Executar a skill em cada projeto
 
-O argumento é o nome do relatório que a skill salva em `reports/`:
+A skill deve rodar sobre o código **original**, que está no `main` (skill + projetos sem refatoração). Crie uma branch a partir dele e execute a skill em cada projeto. O argumento é o nome do relatório que a skill salva em `reports/`:
 
 ```bash
+git checkout main
+git checkout -b minha-execucao
 cd code-smells-project   && claude "/refactor-arch audit-project-1"
 cd ../ecommerce-api-legacy && claude "/refactor-arch audit-project-2"
 cd ../task-manager-api     && claude "/refactor-arch audit-project-3"
@@ -225,9 +371,11 @@ cd ../task-manager-api     && claude "/refactor-arch audit-project-3"
 
 A skill imprime a análise (Fase 1) e o relatório (Fase 2) e para em `Proceed with refactoring (Phase 3)? [y/n]`. Com "y", salva o relatório, refatora e valida.
 
+> Rodar a skill nesta branch (`feature/skill-sem-over-engineering`) audita o código **já refatorado**. O relatório sai diferente dos que estão em `reports/`, e isso é esperado.
+
 ### Validar que a refatoração funcionou
 
-Subir cada aplicação e chamar um endpoint:
+Nesta branch (código refatorado), suba cada aplicação e chame um endpoint:
 
 ```bash
 # code-smells-project

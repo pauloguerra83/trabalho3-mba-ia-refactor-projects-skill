@@ -1,4 +1,6 @@
 @baseUrl = http://localhost:3000
+# Mesmo valor de ADMIN_TOKEN usado ao subir a API (ex.: ADMIN_TOKEN=troque-me npm start)
+@adminToken = troque-me
 
 ### Checkout - sucesso
 POST {{baseUrl}}/api/checkout
@@ -26,6 +28,8 @@ Content-Type: application/json
 
 ### Relatório financeiro administrativo
 GET {{baseUrl}}/api/admin/financial-report
+X-Admin-Token: {{adminToken}}
 
 ### Deletar usuário
 DELETE {{baseUrl}}/api/users/1
+X-Admin-Token: {{adminToken}}
