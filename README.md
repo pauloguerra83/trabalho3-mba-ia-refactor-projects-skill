@@ -1,3 +1,16 @@
+> **Entrega do desafio:** o código refatorado dos 3 projetos, os relatórios de auditoria (`reports/`) e a documentação completa (análise manual, construção da skill, resultados e como executar) estão na branch **[`feature/skill-sem-over-engineering`](https://github.com/pauloguerra83/trabalho3-mba-ia-refactor-projects-skill/tree/feature/skill-sem-over-engineering)**.
+>
+> Esta branch (`main`) contém apenas a skill `refactor-arch` (em `.claude/skills/refactor-arch/` de cada projeto) e os projetos **originais**, sem refatoração. É o ponto de partida para executar a skill novamente:
+>
+> ```bash
+> git checkout -b minha-execucao main
+> cd code-smells-project && claude "/refactor-arch audit-project-1"
+> ```
+>
+> Abaixo segue o enunciado original do desafio.
+
+---
+
 # Criação de Skills — Refatoração Arquitetural Automatizada
 
 Ao longo do curso você aprendeu o que são Skills e como elas permitem que um agente de IA atue como um especialista em tarefas específicas. Agora imagine o seguinte cenário: você herdou 3 projetos legados com problemas de arquitetura, segurança e qualidade de código. Revisar e corrigir tudo manualmente levaria dias.
