@@ -2,7 +2,7 @@
 
 Skill do Claude Code que analisa um backend legado, audita anti-patterns por severidade e o refatora para MVC, validando que a aplicação continua funcionando. A skill está em `.claude/skills/refactor-arch/` dentro de cada projeto (as 3 cópias são idênticas) e os relatórios de auditoria estão em [`reports/`](reports/). Enunciado original: [devfullcycle/mba-ia-refactor-projects-skill](https://github.com/devfullcycle/mba-ia-refactor-projects-skill).
 
-**Branches:** o `main` contém só a skill e os projetos originais. É o ponto de partida para executar a skill novamente (veja [Como Executar](#d-como-executar)). Esta branch (`feature/skill-sem-over-engineering`) é a entrega, ou seja, o resultado da execução: código refatorado, relatórios e esta documentação.
+**Código original:** o estado dos projetos antes da refatoração, já com a skill, está preservado no commit `34653e8`. É o ponto de partida para executar a skill novamente (veja [Como Executar](#d-como-executar)).
 
 ---
 
@@ -202,7 +202,7 @@ POST   /api/checkout  -> 400 | Pagamento recusado
 
 ### Validação dos endpoints (antes × depois)
 
-Cada aplicação foi executada duas vezes, sempre com banco limpo: uma com o código **original** (commit `34653e8`, o mesmo do `main`) e outra com o código **refatorado**, com `ADMIN_TOKEN` definido. Todas as rotas do inventário original foram chamadas com pelo menos um caso de sucesso e um de erro. As rotas administrativas foram chamadas sem token e com o header `X-Admin-Token`.
+Cada aplicação foi executada duas vezes, sempre com banco limpo: uma com o código **original** (commit `34653e8`) e outra com o código **refatorado**, com `ADMIN_TOKEN` definido. Todas as rotas do inventário original foram chamadas com pelo menos um caso de sucesso e um de erro. As rotas administrativas foram chamadas sem token e com o header `X-Admin-Token`.
 
 A comparação considera o status HTTP e a estrutura da resposta (as chaves), ignorando valores voláteis como ids, datas e token. **Todas as diferenças encontradas são intencionais** e estão ligadas a um finding do relatório. Nenhuma regressão foi encontrada.
 
@@ -359,11 +359,10 @@ Contract Changes:
 
 ### Executar a skill em cada projeto
 
-A skill deve rodar sobre o código **original**, que está no `main` (skill + projetos sem refatoração). Crie uma branch a partir dele e execute a skill em cada projeto. O argumento é o nome do relatório que a skill salva em `reports/`:
+A skill deve rodar sobre o código **original**, preservado no commit `34653e8` (skill + projetos sem refatoração). Crie uma branch a partir dele e execute a skill em cada projeto. O argumento é o nome do relatório que a skill salva em `reports/`:
 
 ```bash
-git checkout main
-git checkout -b minha-execucao
+git checkout -b minha-execucao 34653e8
 cd code-smells-project   && claude "/refactor-arch audit-project-1"
 cd ../ecommerce-api-legacy && claude "/refactor-arch audit-project-2"
 cd ../task-manager-api     && claude "/refactor-arch audit-project-3"
@@ -371,11 +370,11 @@ cd ../task-manager-api     && claude "/refactor-arch audit-project-3"
 
 A skill imprime a análise (Fase 1) e o relatório (Fase 2) e para em `Proceed with refactoring (Phase 3)? [y/n]`. Com "y", salva o relatório, refatora e valida.
 
-> Rodar a skill nesta branch (`feature/skill-sem-over-engineering`) audita o código **já refatorado**. O relatório sai diferente dos que estão em `reports/`, e isso é esperado.
+> Rodar a skill no `main` audita o código **já refatorado**. O relatório sai diferente dos que estão em `reports/`, e isso é esperado.
 
 ### Validar que a refatoração funcionou
 
-Nesta branch (código refatorado), suba cada aplicação e chame um endpoint:
+No `main` (código refatorado), suba cada aplicação e chame um endpoint:
 
 ```bash
 # code-smells-project
