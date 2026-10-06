@@ -10,6 +10,8 @@ Skill do Claude Code que analisa um backend legado, audita anti-patterns por sev
 
 As linhas citadas referem-se ao código **original** de cada projeto.
 
+Esta é uma amostra de 8 problemas por projeto, escolhidos pelo maior impacto, como o enunciado sugere. Todos foram encontrados pela skill na Fase 2, que também apontou outros problemas. Por isso os relatórios em [`reports/`](reports/) têm mais findings: 16, 14 e 13 (veja o [resumo na seção C](#resumo-dos-relatórios-de-auditoria)).
+
 ### code-smells-project (Python/Flask — API de E-commerce)
 
 | Severidade | Problema | Por que é relevante |
